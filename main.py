@@ -35,9 +35,10 @@ def Conexion():
         #Impresión del detalle del error
         print(e.args[0])
 
-#Metodo generado para insertar los datos consultados desde la API del Metrobus CDMX
+#Endpoint generado para la actualización de los datos de las unidades
 @app.get("/actualiza-unidades")
-def InsertaDatos():
+#Metodo generado para insertar los datos consultados desde la API del Metrobus CDMX
+def ActualizaUnidades():
      #inicia el manejo de errores
     try:
         #Inicialización de la variable cursor mandando a llamar el metodo Conexion
@@ -148,7 +149,9 @@ def ConsultaUnidades():
         #Impresión del detalle del error
         print(e.args[0])
 
+#Endpoint generado para la consulta de las alcaldias
 @app.get("/consulta-alcaldias")
+#Metodo generado para consultar las alcaldias existentes en la BD
 def ConsultaAlcaldias():
      #inicia el manejo de errores
     try:
@@ -180,9 +183,11 @@ def ConsultaAlcaldias():
         #Impresión del detalle del error
         print(e.args[0])
 
+#Endpoint generado para la consulta de unidades por su id
 @app.get("/consulta-unidad-id")
+#Metodo generado para consultar las unidades por su id
 def ConsultaUbicacionXUnidad(id):
-     #inicia el manejo de errores
+    #inicia el manejo de errores
     try:
         #Inicialización de la variable cursor mandando a llamar el metodo Conexion
         cursor = Conexion()
@@ -199,6 +204,53 @@ def ConsultaUbicacionXUnidad(id):
         for row in datos:
             #Asignamos los valores obtenidos a la varaible "registro"
             registro = (row[0], row[1], row[2], row[3], row[4], row[5])
+            #agregamos los datos a nuestro array list
+            arraylist_unidad.append(registro)
+        
+        #Generamos el Json final utilizando el Arraylist y la clase JSONEncoder
+        json_unidades = json.dumps(arraylist_unidad, cls=JSONEncoder)
+        #Cerramos la conexión a la BD
+        cursor.close()
+        #Retornamos el Json final
+        return json_unidades
+    #Manejo de excepciones
+    except:
+        e = sys.exc_info()[1]
+        #Impresión del detalle del error
+        print(e.args[0])
+
+#Endpoint generado para la consulta de las unidades que se encuentran en un alcaldia basados en su cve_mun
+@app.get("/consulta-unidad-x-cve_alcaldia")
+#Metodo generado para consultar las unidades que se encuenran en una alcaldia con base en su cve_mun
+def ConsultaUnidadXAlcaldia(cve_mun):
+    #inicia el manejo de errores
+    try:
+        #Inicialización de la variable cursor mandando a llamar el metodo Conexion
+        cursor = Conexion()
+        #Declaramos el SELECT para que se ejecute en nuestro BD
+        sql = "SELECT A.nomgeo, U.vehicle_id "
+        sql = sql +", ST_Contains("
+        sql = sql +"   ST_GeomFromText(CONCAT('LINESTRING(',REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(A.geo_shape,'{\"type\": \"Polygon\", \"coordinates\": [[[',''),'], [','* '),']]]}',''),', ',' '),'*',','),')'))"
+        sql = sql +"   ,ST_PointFromText(concat('POINT(',U.position_longitude,' ',U.position_latitude,')'))) exist "
+        sql = sql +"FROM MetrobusCDMX.unidades U, "
+        sql = sql +"MetrobusCDMX.alcaldias A "
+        sql = sql +"WHERE A.cve_mun = %(cve_mun)s"
+        sql = sql +" AND ST_Contains("
+        sql = sql +"   ST_GeomFromText(CONCAT('LINESTRING(',REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(A.geo_shape,'{\"type\": \"Polygon\", \"coordinates\": [[[',''),'], [','* '),']]]}',''),', ',' '),'*',','),')'))"
+        sql = sql +"   ,ST_PointFromText(concat('POINT(',U.position_longitude,' ',U.position_latitude,')')))"
+        sql = sql +" ORDER BY 2 ASC;"
+
+        #Ejecutamos la consulta junto con su parametro
+        cursor.execute(sql, {'cve_mun':cve_mun})
+        #Obtenemos los datos devueltos por nuestra consulta
+        datos = cursor.fetchall()
+
+        #Declaramos un ArrayList vacio
+        arraylist_unidad = []
+        #for que nos sirve para recorrer los registros obtenidos en la consulta
+        for row in datos:
+            #Asignamos los valores obtenidos a la varaible "registro"
+            registro = (row[0], row[1], row[2])
             #agregamos los datos a nuestro array list
             arraylist_unidad.append(registro)
         
