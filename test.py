@@ -110,8 +110,6 @@ def ConsultaUbicacionXUnidad(id):
 
 
 
-#Conexion()
-
 #EliminaUnidades()
 
 #InsertaDatos()
