@@ -6,145 +6,210 @@ import sys
 from fastapi import FastAPI
 app = FastAPI()
 
+#Creación de la clase JSONEncoder para dar solución al error "Object of type Decimal is not JSON serializable"
 class JSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
             return float(obj)
         return json.JSONEncoder.default(self, obj)
 
+#Metodo para la conexión a la BD de PostgreSQL
 def Conexion():
+    #inicia el manejo de errores
     try:
-        conn = psycopg2.connect(database="MetrobusCDMX",
-                                user='postgres', password='123456', 
-                                host='127.0.0.1', port='5432'
+        #Creación de la cadena de conexión
+        conn = psycopg2.connect(database="MetrobusCDMX",                #Nombre de la base de datos a la cual nos vamos a conectar
+                                user='postgres', password='123456',     #Usuario y password para acceder a la BD
+                                host='127.0.0.1', port='5432'           #Host (servidor) y puerto de acceso
         )
 
+        #Se configuran las operaciones como Autocommit para evitar hacerlo manualmente
         conn.autocommit = True
+        #Creación del cursor que servira para realizar las operaciones en la BD
         cursor = conn.cursor()
-        #print('Conexión Exitosa!!')
+        #Se retorna el objeto cursor
         return cursor
+    #Manejo de excepciones
     except:
         e = sys.exc_info()[1]
+        #Impresión del detalle del error
         print(e.args[0])
 
+#Metodo generado para insertar los datos consultados desde la API del Metrobus CDMX
+@app.get("/actualiza-unidades")
 def InsertaDatos():
+     #inicia el manejo de errores
     try:
+        #Inicialización de la variable cursor mandando a llamar el metodo Conexion
         cursor = Conexion()
+        #Ejecución del metodo EliminaUnidades que limpia la tabla de unidades dentro de la BD
+        EliminaUnidades()
+
+        #Consultamos la API del Metrobus CDMX para obtener las Unidades
         response = urllib.request.urlopen('https://datos.cdmx.gob.mx/api/3/action/datastore_search?resource_id=ad360a0e-b42f-482c-af12-1fd72140032e&limit=500').read()
+        #Almacenamos los datos en formato json
         jsonResponse = json.loads(response.decode('utf-8'))
 
+        #for que nos sirve para recorrer cada "unidad" almacenada dentro del "tag" llamado "records", que es donde vienen los datos de las Unidades
         for child in jsonResponse['result']['records']:
-            #print (child['_id'], child['id'], child['date_updated'], child['vehicle_id'], child['vehicle_label'], 
-            #        child['vehicle_current_status'], child['position_latitude'], child['position_longitude'], child['geographic_point'], 
-            #        child['position_speed'], child['position_odometer'], child['trip_schedule_relationship'], child['trip_id'], 
-            #        child['trip_start_date'], child['trip_route_id'])
+            #Mandamos ejecutar el Store Procedure que inserta dentro de la tabla Unidades de la BD, pasando como parametros los datos obtenidos de la API
             cursor.execute("CALL MetrobusCDMX.InsertaDatos(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);", (child['_id'], child['id'], child['date_updated'], child['vehicle_id'], child['vehicle_label'], 
                     child['vehicle_current_status'], child['position_latitude'], child['position_longitude'], child['geographic_point'], 
                     child['position_speed'], child['position_odometer'], child['trip_schedule_relationship'], child['trip_id'], 
                     child['trip_start_date'], child['trip_route_id']))
-        
-        print('Datos Insertados correctamente!!')
-        return
+        #Inicializamos el mensaje de ejecución exitosa
+        mensaje = 'Datos Insertados correctamente!!'
+        #Cerramos la conexión a la BD
+        cursor.close()
+        #Retornamos la variable "mensaje" a nuestro Endpoint
+        return mensaje
+    #Manejo de excepciones
     except:
-        print("Error inesperado:", sys.exc_info()[0])
+        e = sys.exc_info()[1]
+        #Impresión del detalle del error
+        print(e.args[0])
 
+#Metodo generado para limpiar los datos de las unidades antes de realizar la carga (en teoría, la API actualiza los datos constantemente por lo que es necesario refrescar los datos)
 def EliminaUnidades():
+     #inicia el manejo de errores
     try:
+        #Inicialización de la variable cursor mandando a llamar el metodo Conexion
         cursor = Conexion()
         cursor.execute("TRUNCATE TABLE MetrobusCDMX.unidades;")
-        print('Datos Eliminados Correctamente!!')
+
+        #Cerramos la conexión a la BD
+        cursor.close()
         return
+    #Manejo de excepciones
     except:
         e = sys.exc_info()[1]
+        #Impresión del detalle del error
         print(e.args[0])
 
+#Metodo generado para la inserción inicial del catalogo de unidades
 def InsertaAlcaldias():
+     #inicia el manejo de errores
     try:
+        #Inicialización de la variable cursor mandando a llamar el metodo Conexion
         cursor = Conexion()
+
+        #Consultamos la API del Metrobus CDMX para obtener las Alcaldias
         response = urllib.request.urlopen('https://datos.cdmx.gob.mx/api/3/action/datastore_search?resource_id=e4a9b05f-c480-45fb-a62c-6d4e39c5180e&limit=25').read()
+        #Almacenamos los datos en formato json
         jsonResponse = json.loads(response.decode('utf-8'))
 
+        #for que nos sirve para recorrer cada "Alcaldia" almacenada dentro del "tag" llamado "records", que es donde vienen los datos de las Alcaldias
         for child in jsonResponse['result']['records']:
-            #print(child['_id'], child['id'], child['nomgeo'], child['cve_mun'], child['cve_ent'], child['cvegeo'], child['geo_point_2d'], child['municipio'])
+            #Mandamos ejecutar el Store Procedure que inserta dentro de la tabla Alcaldias de la BD, pasando como parametros los datos obtenidos de la API
             cursor.execute("CALL metrobuscdmx.insertaAlcaldias(%s, %s, %s, %s, %s, %s, %s, %s, %s);",(child['_id'], child['id'], child['nomgeo'], child['cve_mun'], child['cve_ent'], child['cvegeo'], child['geo_point_2d'], child['geo_shape'], child['municipio']))
+        #Imprimimos el mensaje de ejecución exitosa
         print('Datos Insertados correctamente!!')
+        #Cerramos la conexión a la BD
+        cursor.close()
+        #Retornamos
         return
+    #Manejo de excepciones
     except:
         e = sys.exc_info()[1]
+        #Impresión del detalle del error
         print(e.args[0])
 
+#Endpoint generado para la consulta de unidades
 @app.get("/consulta-unidades")
+#Metodo generado para consultar las unidades almacenadas en la BD
 def ConsultaUnidades():
+     #inicia el manejo de errores
     try:
+        #Inicialización de la variable cursor mandando a llamar el metodo Conexion
         cursor = Conexion()
+        #Enviamos el SELECT para que se ejecute en nuestro BD
         cursor.execute('SELECT id, vehicle_id, vehicle_label, vehicle_current_status, trip_id, trip_route_id FROM MetrobusCDMX.unidades;')
+        #Obtenemos los datos devueltos por nuestra consulta
         datos = cursor.fetchall()
 
+        #Declaramos un ArrayList vacio
         arraylist_unidades = []
+        #for que nos sirve para recorrer los registros obtenidos en la consulta
         for row in datos:
+            #Asignamos los valores obtenidos a la varaible "registro"
             registro = (row[0], row[1], row[2], row[3], row[4], row[5])
-            arraylist_unidades .append(registro)
+            #agregamos los datos a nuestro array list
+            arraylist_unidades.append(registro)
 
+        #Generamos el Json final utilizando el Arraylist y la clase JSONEncoder
         json_unidades = json.dumps(arraylist_unidades, cls=JSONEncoder)
+        #Cerramos la conexión a la BD
         cursor.close()
+        #Retornamos el Json final
         return json_unidades
+    #Manejo de excepciones
     except:
         e = sys.exc_info()[1]
+        #Impresión del detalle del error
         print(e.args[0])
 
 @app.get("/consulta-alcaldias")
 def ConsultaAlcaldias():
+     #inicia el manejo de errores
     try:
+        #Inicialización de la variable cursor mandando a llamar el metodo Conexion
         cursor = Conexion()
+        #Enviamos el SELECT para que se ejecute en nuestro BD
         cursor.execute('SELECT id, nomgeo, cve_mun, cve_ent, cvegeo, geo_point_2d, municipio FROM MetrobusCDMX.alcaldias')
+        #Obtenemos los datos devueltos por nuestra consulta
         datos = cursor.fetchall()
 
+        #Declaramos un ArrayList vacio
         arraylist_alcaldias = []
+        #for que nos sirve para recorrer los registros obtenidos en la consulta
         for row in datos:
+            #Asignamos los valores obtenidos a la varaible "registro"
             registro = (row[0], row[1], row[2], row[3], row[4], row[5], row[6])
+            #agregamos los datos a nuestro array list
             arraylist_alcaldias.append(registro)
         
+        #Generamos el Json final utilizando el Arraylist y la clase JSONEncoder
         json_alcaldias = json.dumps(arraylist_alcaldias, cls=JSONEncoder)
-
+        #Cerramos la conexión a la BD
         cursor.close()
+        #Retornamos el Json final
         return json_alcaldias
+    #Manejo de excepciones
     except:
         e = sys.exc_info()[1]
+        #Impresión del detalle del error
         print(e.args[0])
 
 @app.get("/consulta-unidad-id")
 def ConsultaUbicacionXUnidad(id):
+     #inicia el manejo de errores
     try:
+        #Inicialización de la variable cursor mandando a llamar el metodo Conexion
         cursor = Conexion()
-
+        #Declaramos el SELECT para que se ejecute en nuestro BD
         sql = 'SELECT id, vehicle_id, vehicle_label, vehicle_current_status, trip_id, trip_route_id FROM MetrobusCDMX.unidades WHERE vehicle_id = %(id)s;'
+        #Ejecutamos la consulta junto con su parametro
         cursor.execute(sql, {'id':id})
+        #Obtenemos los datos devueltos por nuestra consulta
         datos = cursor.fetchall()
 
+        #Declaramos un ArrayList vacio
         arraylist_unidad = []
+        #for que nos sirve para recorrer los registros obtenidos en la consulta
         for row in datos:
+            #Asignamos los valores obtenidos a la varaible "registro"
             registro = (row[0], row[1], row[2], row[3], row[4], row[5])
+            #agregamos los datos a nuestro array list
             arraylist_unidad.append(registro)
         
+        #Generamos el Json final utilizando el Arraylist y la clase JSONEncoder
         json_unidades = json.dumps(arraylist_unidad, cls=JSONEncoder)
-
+        #Cerramos la conexión a la BD
         cursor.close()
+        #Retornamos el Json final
         return json_unidades
+    #Manejo de excepciones
     except:
         e = sys.exc_info()[1]
+        #Impresión del detalle del error
         print(e.args[0])
-
-
-
-
-#EliminaUnidades()
-
-#InsertaDatos()
-
-#ConsultaUnidades()
-
-#ConsultaUbicacionXUnidad(1500)
-
-#InsertaAlcaldias()
-
-ConsultaAlcaldias()
