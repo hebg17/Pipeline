@@ -1,9 +1,10 @@
 FROM postgres:latest
 ENV POSTGRES_PASSWORD=123456
 ENV POSTGRES_USER=postgres
-ENV POSTGRES_DB=MetrobusCDMX
+ENV POSTGRES_DB=postgres
+COPY CreateDatabase.sql /docker-entrypoint-initdb.d/CreateDatabase.sql
 COPY CreateSchema.sql /docker-entrypoint-initdb.d/CreateSchema.sql
 COPY CreateTables.sql /docker-entrypoint-initdb.d/CreateTables.sql
 COPY CreateExtensions.sql /docker-entrypoint-initdb.d/CreateExtensions.sql
-COPY CreateProcedure_insertaalcaldiassql /docker-entrypoint-initdb.d/CreateProcedure_insertaalcaldiassql.sql
+COPY CreateProcedure_insertaalcaldias.sql /docker-entrypoint-initdb.d/CreateProcedure_insertaalcaldias.sql
 COPY CreateProcedure_insertadatos.sql /docker-entrypoint-initdb.d/CreateProcedure_insertadatos.sql
