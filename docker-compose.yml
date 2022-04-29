@@ -2,5 +2,15 @@ version: "3.8"
 services:
   app:
     build: ./app/
-  db:
-    build: ./database/
+#  db:
+#    build: ./database/
+  postgis:
+    image: pgrouting/pgrouting:12-3.0-2.6.3
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=123456
+volumes:
+  db-data:
