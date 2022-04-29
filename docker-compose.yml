@@ -2,6 +2,9 @@ version: "3.8"
 services:
   app:
     build: ./app/
+    depends_on:
+      - postgis
+
   postgis:
     image: pgrouting/pgrouting:12-3.0-2.6.3
     ports:
@@ -10,5 +13,8 @@ services:
       - db-data:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=123456
+      - HEALTH_TIMEOUT=60
+    #options:
+    #  - health-timeout 60s
 volumes:
   db-data:

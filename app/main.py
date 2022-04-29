@@ -20,7 +20,7 @@ def Conexion():
         #Creación de la cadena de conexión
         conn = psycopg2.connect(database="MetrobusCDMX",                #Nombre de la base de datos a la cual nos vamos a conectar
                                 user='postgres', password='123456',     #Usuario y password para acceder a la BD
-                                host='127.0.0.1', port='5432'           #Host (servidor) y puerto de acceso
+                                host='172.18.0.2', port='5432'           #Host (servidor) y puerto de acceso
         )
 
         #Se configuran las operaciones como Autocommit para evitar hacerlo manualmente
