@@ -1,10 +1,5 @@
 version: "3.8"
 services:
-  app:
-    build: ./app/
-    depends_on:
-      - postgis
-
   postgis:
     image: pgrouting/pgrouting:12-3.0-2.6.3
     ports:
@@ -13,8 +8,52 @@ services:
       - db-data:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=123456
-      - HEALTH_TIMEOUT=60
-    #options:
-    #  - health-timeout 60s
+      - POSTGRES_AUTHENTICATION_TIMEOUT=180
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    command:
+      - "postgres"
+      - "-c"
+      - "authentication_timeout=180"
+    networks:
+      app_net:
+        ipv4_address: 172.16.238.10
+    build: ./BD/
+
+  app:
+    build: ./app/
+    depends_on:
+      - postgis
+    networks:
+      app_net:
+        ipv4_address: 172.16.238.11
+
+networks:
+  app_net:
+    driver: bridge
+    enable_ipv6: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.238.0/24
+          gateway: 172.16.238.1
+        - subnet: 2001:3984:3989::/64
+          gateway: 2001:3984:3989::1
+
+
+
+  # db:
+  #   image: kartoza/postgis:$POSTGRES_MAJOR_VERSION-$POSTGIS_MAJOR_VERSION.${POSTGIS_MINOR_RELEASE}
+  #   volumes:
+  #     - db-data:/var/lib/postgresql/data
+  #   environment:
+  #     - POSTGRES_DB=gis
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_PASS=123456
+  #     - ALLOW_IP_RANGE=0.0.0.0/0
+  #     - POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting
+  #   restart: on-failure
+  #   healthcheck:
+  #     test: "exit 0"
+
 volumes:
   db-data:

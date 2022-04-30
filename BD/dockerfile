@@ -1,0 +1,7 @@
+FROM pgrouting/pgrouting:12-3.0-2.6.3
+#COPY CreateDatabase.sql /docker-entrypoint-initdb.d/01_CreateDatabase.sql
+#COPY CreateSchema.sql /docker-entrypoint-initdb.d/02_CreateSchema.sql
+COPY CreateTables.sql /docker-entrypoint-initdb.d/03_CreateTables.sql
+COPY CreateExtensions.sql /docker-entrypoint-initdb.d/04_CreateExtensions.sql
+COPY CreateProcedure_insertaalcaldias.sql /docker-entrypoint-initdb.d/05_CreateProcedure_insertaalcaldias.sql
+COPY CreateProcedure_insertadatos.sql /docker-entrypoint-initdb.d/06_CreateProcedure_insertadatos.sql

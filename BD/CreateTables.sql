@@ -1,4 +1,7 @@
-CREATE TABLE MetrobusCDMX.alcaldias
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+
+CREATE TABLE alcaldias
 (
     _id integer,
     id numeric,
@@ -11,7 +14,7 @@ CREATE TABLE MetrobusCDMX.alcaldias
     municipio numeric
 );
 
-CREATE TABLE MetrobusCDMX.unidades
+CREATE TABLE unidades
 (
     _id integer,
     id numeric,

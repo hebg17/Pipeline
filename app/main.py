@@ -19,8 +19,8 @@ def Conexion():
     try:
         #Creación de la cadena de conexión
         conn = psycopg2.connect(database="MetrobusCDMX",                #Nombre de la base de datos a la cual nos vamos a conectar
-                                user='postgres', password='123456',     #Usuario y password para acceder a la BD
-                                host='172.18.0.2', port='5432'           #Host (servidor) y puerto de acceso
+                                user="postgres", password="123456",     #Usuario y password para acceder a la BD
+                                host="172.16.238.10"#, port="5432"           #Host (servidor) y puerto de acceso
         )
 
         #Se configuran las operaciones como Autocommit para evitar hacerlo manualmente
@@ -87,12 +87,31 @@ def EliminaUnidades():
         #Impresión del detalle del error
         print(e.args[0])
 
+#Metodo generado para limpiar las Alcaldias
+def EliminaAlcaldias():
+     #inicia el manejo de errores
+    try:
+        #Inicialización de la variable cursor mandando a llamar el metodo Conexion
+        cursor = Conexion()
+        cursor.execute("TRUNCATE TABLE alcaldias;")
+
+        #Cerramos la conexión a la BD
+        cursor.close()
+        return
+    #Manejo de excepciones
+    except:
+        e = sys.exc_info()[1]
+        #Impresión del detalle del error
+        print(e.args[0])
+
+@app.get("/carga-alcaldias")
 #Metodo generado para la inserción inicial del catalogo de unidades
 def InsertaAlcaldias():
      #inicia el manejo de errores
     try:
         #Inicialización de la variable cursor mandando a llamar el metodo Conexion
         cursor = Conexion()
+        EliminaAlcaldias()
 
         #Consultamos la API del Metrobus CDMX para obtener las Alcaldias
         response = urllib.request.urlopen('https://datos.cdmx.gob.mx/api/3/action/datastore_search?resource_id=e4a9b05f-c480-45fb-a62c-6d4e39c5180e&limit=25').read()
